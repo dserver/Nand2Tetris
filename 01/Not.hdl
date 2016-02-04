@@ -8,6 +8,7 @@
  * out = not in
  */
 
+// Author: Jonathan Henk
 CHIP Not {
     IN in;
     OUT out;

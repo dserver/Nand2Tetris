@@ -11,6 +11,7 @@
  *                {0, 0, 0, in} if sel == 11
  */
 
+// Author: Jonathan Henk
 CHIP DMux4Way {
     IN in, sel[2];
     OUT a, b, c, d;

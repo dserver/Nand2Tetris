@@ -9,6 +9,7 @@
  *       0 otherwise
  */
 
+// Author: Jonathan Henk
 CHIP Or {
     IN a, b;
     OUT out;

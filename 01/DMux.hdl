@@ -9,6 +9,7 @@
  *          {0, in} if sel == 1
  */
 
+// Author: Jonathan Henk
 CHIP DMux {
     IN in, sel;
     OUT a, b;

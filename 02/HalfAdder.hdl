@@ -7,6 +7,7 @@
  * Computes the sum of two bits.
  */
 
+// Author: Jonathan Henk
 CHIP HalfAdder {
     IN a, b;    // 1-bit inputs
     OUT sum,    // Right bit of a + b 

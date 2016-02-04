@@ -7,6 +7,8 @@
  * Computes the sum of three bits.
  */
 
+
+// Author: Jonathan Henk
 CHIP FullAdder {
     IN a, b, c;  // 1-bit inputs
     OUT sum,     // Right bit of a + b + c
