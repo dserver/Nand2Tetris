@@ -23,6 +23,12 @@ CHIP PC {
     DFF(in=reset, out=treset); // all select pins in Mux must be timed
     DFF(in=load, out=tload); // otherwise the combinational logic happens instantly
     DFF(in=inc, out=tinc);
+
+    // To figure out the input pins of the Mux I created a table with the 8
+    // rows that correspond to the inputs (reset, load, inc). I did it "backwards"
+    // and so every other row is false. If I had put reset as the high order bit
+    // then the last four rows would be false but I was too lazy to change it since
+    // it works.
     Mux8Way16(a=m2, b=false, c=m1, d=false,
                 e=m3, f=false, g=m1, h=false,
                 sel[0]=treset, sel[1]=tload, sel[2]=tinc, out=lout, out=out);
