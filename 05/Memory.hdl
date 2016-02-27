@@ -28,23 +28,16 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // clocked inputs
-    DFF(in=load, out=loadtm1);
-    Register(in=in, load=load, out=inputm1); // in_t-1
-    Register(in[0..14]=address[0..14], in[15]=false, load=load, out=addrtm1, out[13]=addrtm13, out[14]=addrtm14); // addr t-1
-
-    Mux16(a[0..14]=address[0..14], a[15]=false, b=addrtm1, sel=loadtm1, out[0..13]=curAddrRAM, out[0..12]=curAddrScreen);
-
-    // RAM, Screen, KBD interfaces
-    RAM16K(in=inputm1, load=loadRam, address=curAddrRAM, out=outRam);
-    Screen(in=inputm1, load=loadScreen, address=curAddrScreen, out=outScreen);
+    RAM16K(in=in, load=loadRam, address=address[0..13], out=outRam);
+    Screen(in=in, load=loadScreen, address=address[0..12], out=outScreen);
     Keyboard(out=outKbd);
 
-    // Decide if screen or RAM load pin is asserted based on high order bits
-    Not(in=addrtm13, out=not13);
-    And(a=addrtm14, b=not13, out=loadChooser);
-    DMux(in=loadtm1, sel=loadChooser, a=loadRam, b=loadScreen);
+    // use high order bits to choose which load to assert
+    Not(in=address[13], out=not13);
+    And(a=address[14], b=not13, out=loadChooser);
+    DMux(in=load, sel=loadChooser, a=loadRam, b=loadScreen);
 
     // Decide output (RAM, Screen, Keyboard)
-    Mux4Way16(a=outRam, b=false, c=outScreen, d=outKbd, sel[0..1]=address[13..14], out=out);
+    Mux4Way16(a=outRam, b=outRam, c=outScreen, d=outKbd, sel[0..1]=address[13..14], out=out);
+
 }
