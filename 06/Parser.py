@@ -42,15 +42,26 @@ def clean_line(line):
     return line
 
 class Parser:
+
     commands = [] # each line in the input assembly file is stored here
     command = "" # current command
     command_i = 0 # which 'line' in the file we're on
+    commandType = ""
+
 
     def __init__(self, filename):
         copy_and_clean(filename)
         asm_file = open(os.getenv('TEMP') + '\\temp_assembly_file.txt', 'r')
         for line in asm_file:
-            self.commands.append(line)
+            if (line.find('\n') > -1):
+                self.commands.append(line[:-1])
+            else:
+                self.commands.append(line)
+
+        # hacky way to get first command read
+        self.command_i = -1 
+        self.advance()
+
 
     # returns if there are any commands left to parse
     def hasMoreCommands(self):
@@ -58,14 +69,45 @@ class Parser:
             return False
         return True
 
+
     # read next command. Skips whitespace and comments
     def advance(self):
         self.command_i += 1
+        self.command = commands[self.command_i]
+        if (self.command.find('=') > -1 or self.command.find(';') > -1):
+            self.commandType = "C_COMMAND"
+        elif (self.command.find("@") > -1):
+            self.commandType = "A_COMMAND"
+        elif (self.command.find("(") > -1):
+            self.commandType = "L_COMMAND"
 
-    def symbol():
 
-    def dest():
+    def symbol(self):
+        if (self.commandType == "L_COMMAND"):
+            return self.command[1:-1]
+        elif (self.commandType == "A_COMMAND"):
+            return self.command[1:]
 
-    def comp():
 
-    def jmp():
+    def dest(self):
+        if (self.commandType == "C_COMMAND"):
+            if (self.command.find("=") > -1):
+                (com, dest) = self.command.split("=")
+                return dest
+            elif (self.command.find(";") > -1):
+                (dest, jmp) = self.command.split(";")
+                return dest
+
+
+    def comp(self):
+        if (self.commandType == "C_COMMAND"):
+            if (self.command.find("=") > -1):
+                (com, dest) = self.command.split("=")
+                return com
+
+
+    def jmp(self):
+        if (self.commandType == "C_COMMAND"):
+            if (self.command.find(";") > -1):
+                (dest, jmp) = self.command.split(";")
+                return jmp
