@@ -1,0 +1,290 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/CPU.hdl
+
+/**
+ * The Hack CPU (Central Processing unit), consisting of an ALU,
+ * two registers named A and D, and a program counter named PC.
+ * The CPU is designed to fetch and execute instructions written in 
+ * the Hack machine language. In particular, functions as follows:
+ * Executes the inputted instruction according to the Hack machine 
+ * language specification. The D and A in the language specification
+ * refer to CPU-resident registers, while M refers to the external
+ * memory location addressed by A, i.e. to Memory[A]. The inM input 
+ * holds the value of this location. If the current instruction needs 
+ * to write a value to M, the value is placed in outM, the address 
+ * of the target location is placed in the addressM output, and the 
+ * writeM control bit is asserted. (When writeM==0, any value may 
+ * appear in outM). The outM and writeM outputs are combinational: 
+ * they are affected instantaneously by the execution of the current 
+ * instruction. The addressM and pc outputs are clocked: although they 
+ * are affected by the execution of the current instruction, they commit 
+ * to their new values only in the next time step. If reset==1 then the 
+ * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
+ * than to the address resulting from executing the current instruction. 
+ */
+
+// Author: Jonathan Henk
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+
+    // A nice hacky way to get instruction inputs to be bound to meaningful symbols
+    Or(a=instruction[12], b=false, out=a);
+    Or(a=instruction[11], b=false, out=c1);
+    Or(a=instruction[10], b=false, out=c2);
+    Or(a=instruction[9], b=false, out=c3);
+    Or(a=instruction[8], b=false, out=c4);
+    Or(a=instruction[7], b=false, out=c5);
+    Or(a=instruction[6], b=false, out=c6);
+
+    Not(in=instruction[12], out=aNot);
+    Not(in=instruction[11], out=c1Not);
+    Not(in=instruction[10], out=c2Not);
+    Not(in=instruction[9], out=c3Not);
+    Not(in=instruction[8], out=c4Not);
+    Not(in=instruction[7], out=c5Not);
+    Not(in=instruction[6], out=c6Not);
+
+    Or(a=instruction[2], b=false, out=j1);
+    Or(a=instruction[1], b=false, out=j2);
+    Or(a=instruction[0], b=false, out=j3);
+
+    Or(a=instruction[3], b=false, out=d3);
+    Or(a=instruction[4], b=false, out=d2);
+    Or(a=instruction[5], b=false, out=d1);
+
+    Not(in=d3, out=d3Not);
+    Not(in=d2, out=d2Not);
+    Not(in=d1, out=d1Not);
+
+    Not(in=instruction[15], out=isAinstruction);
+
+
+    Not(in=j1, out=j1Not);
+    Not(in=j2, out=j2Not);
+    Not(in=j3, out=j3Not);
+
+    // cases when zx should be asserted (A/M, 0, -1, 1, A+1, A-1, -A/-M, !A/!M)
+    // 0
+    And7(a=aNot, b=c1, c=c2Not, d=c3, e=c4Not, f=c5, g=c6, out=zx1);
+    // 1
+    And7(a=aNot, b=c1, c=c2, d=c3, e=c4, f=c5, g=c6,out=zx2);
+    // -1
+    And7(a=aNot, b=c1, c=c2, d=c3, e=c4Not, f=c5, g=c6Not, out=zx3);
+    // A
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6Not, out=zx4);
+    // M
+    And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6Not, out=zx5);
+    // A+1
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4, f=c5, g=c6, out=zx6);
+    // M+1
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4, f=c5, g=c6, out=zx7);
+    // A-1
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5, g=c6Not, out=zx8);
+    // M-1
+    And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5, g=c6Not, out=zx9);
+    // !A
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6, out=zx10);
+    // !M
+    And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6, out=zx11);
+    // -A
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=zx12);
+    // -M
+    And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=zx13);
+    // Test to see if zx should be asserted
+    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zx4, in[4]=zx5, in[5]=zx6, in[6]=zx7,
+        in[8]=zx9, in[9]=zx10, in[10]=zx11, in[11]=zx12, in[12]=zx13, out=zx14);
+    Or(a=zx14, b=isAinstruction, out=zxfinal);
+
+    // cases where zy should be asserted (0, 1, -1, D, D+1, D-1)
+    // 0 - use zx1
+    // 1 - use zx2
+    // -1 - use zx3
+    // D
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5Not, g=c6Not, out=zy1);
+    // D+1
+    And7(a=aNot, b=c1Not, c=c2, d=c3, e=c4, f=c5, g=c6, out=zy2);
+    // D-1
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5, g=c6Not, out=zy3);
+    // -D
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5, g=c6, out=zy4);
+    // Test to see if zy should be asserted
+    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zy1, in[4]=zy2, in[5]=zy3, in[6]=zy4, 
+        in[7..12]=false, out=zyfinal);
+
+
+    // cases where nx should be asserted
+    // A-D - use f5
+    Or(a=f5, b=false, out=nxfinal)
+
+    // cases where ny should be asserted
+    // D-1 - use zy3
+    // D-A/M - use f3 and f4
+    // D|A - use f6
+    // Test if ny should be asserted
+    Or13(in[0]=zy3, in[1]=f3, in[2]=f4, in[3]=f6, in[4..12]=false, out=nyfinal);
+
+    // cases where f should be asserted (0, 1, -1, D, A/M, D-1, A/M-1, D+A
+    // D-A, A-D, D|A)
+    // 0 - use zx1
+    // 1 - use zx2
+    // -1 - use zx3
+    // D - use zy1
+    // A - use zx4
+    // M - use zx5
+    // A-1/M-1 - use zx8 and zx9
+    // D+A
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4Not, f=c5, g=c6Not, out=f1); 
+    // D+M
+    And7(a=a, b=c1Not, c=c2Not, d=c3Not, e=c4Not, f=c5, g=c6Not, out=f2);
+    // D-A
+    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=f3);
+    // D-M
+    And7(a=a, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=f4);
+    // A-D
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=f5);
+    // D|A
+    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4, f=c5Not, g=c6, out=f6);
+    // D-1 - use zy3
+    // Test if f should be asserted
+    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zx4, in[4]=zx5, in[5]=zy1, in[6]=f1,
+        in[8]=zx9, in[9]=zx8, in[10]=f2, in[11]=f3, in[12]=f4, out=for);
+    Or13(in[0]=for, in[1]=f5, in[2]=f6, in[3]=isAinstruction, in[4]=zy3, in[5..12]=false, out=ffinal);
+
+
+    // cases where no should be asserted (-1, !D, !A/!M, -D, -A/-M)
+    // -1 - use zx3
+    // !D
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5Not, g=c6, out=no1);
+    // !A
+    And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6, out=no2);
+    // !M
+    And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6, out=no3);
+    // -D - use zy4
+    // -A - use zx12
+    // -M - use zx13
+    // Test if no should be asserted
+    Or13(in[0]=zx3, in[1]=no1, in[2]=no2, in[3]=no3, in[4]=zy4, in[5]=zx12, in[6]=zx13,
+        in[8..12]=false, out=nofinal);
+
+    // cases when g needs to be asserted (1, -D, -A, D+1, A+1/M+1, D-A/M, A-D)
+    // 1 - use zx2
+    // -D - use zy4
+    // -A - use zx12
+    // A+1 - use zx6
+    // M+1 - use zx7
+    // D+1 - use zy2
+    // D-A - use f3
+    // D-M - use f4
+    // A-D - use f5
+    // Test if g should be asserted
+    Or13(in[0]=zx2, in[1]=zy4, in[2]=zx12, in[3]=zx6, in[4]=zx7, in[5]=zy2, in[6]=f3,
+        in[8]=f4, in[9]=f5, in[10..12]=false, out=gfinal);
+
+    // Test if A should load from instruction or ALU out
+    Mux16(a[0..14]=instruction[0..14], a[15]=false,
+        b[0..15]=aluoutfinal, sel=instruction[15], out=aRegIn);
+    ARegister(in=aRegIn, load=aloadfinal, out=aout, out[0..14]=addressM);
+    DRegister(in=aluoutfinal, load=dloadfinal, out=dout);
+/*
+Function : ALU input bits
+0: zx, zy, f
+1: zx, zy, f g
+-1: zx, zy, f, no
+D: zy, f
+A/M: zx, f
+!D: zy, f, no
+!A/!M: zx, f, no
+-D: D, zy, no, g, f
+-A: A, zx, no, g, f
+D+1: zy, g
+A+1/M+1: zx, g
+D-1: zy, ny, f
+A-1/M-1: zx, nx, f
+D+A/M: f
+D-A/M: ny, f, g
+A-D: nx, f, g
+D&A: none
+D|A: ny, f
+
+
+*/
+
+    And(a=instruction[15], b=a, out=amselector);
+    Mux16(a=aout, b=inM, sel=amselector, out=amout);
+    // ALU
+    ALU(x=dout, y=amout, zx=zxfinal, nx=nxfinal, zy=zyfinal, ny=nyfinal, f=ffinal, no=nofinal, 
+        out=aluout, zr=zr, ng=ng);
+
+    // Test if we need to increment output (A-D)
+    Inc16(in=aluout, out=aluoutp1);
+    Mux16(a=aluout, b=aluoutp1, sel=gfinal, out=aluoutfinal, out=outM);
+
+    // Negation of ALU's output pins for jump logic
+    Not(in=zr, out=zrNot);
+    Not(in=ng, out=ngNot);
+
+    // Program Counter
+    PC(in=aout, load=jmpfinal, inc=nojmp, reset=reset, out[0..14]=pc);
+
+    // Logic for A's load bit
+    And7(a=d1, b=d2Not, c=d3Not, d=true, e=true, f=true, g=true, out=aload1); // A
+    And7(a=d1, b=d2Not, c=d3, d=true, e=true, f=true, g=true, out=aload2); // AM
+    And7(a=d1, b=d2, c=d3Not, d=true, e=true, f=true, g=true, out=aload3); // AD
+    And7(a=d1, b=d2, c=d3, d=true, e=true, f=true, g=true, out=aload4); // AMD
+    Or13(in[0]=aload1, in[1]=aload2, in[3]=aload3, in[4]=aload4, in[5]=isAinstruction,
+     in[6..12]=false, out=aloadfinal);
+
+
+    // Logic for D's load bit
+    And7(a=d1Not, b=d2, c=d3Not, d=true, e=true, f=true, g=true, out=dload1); // D
+    And7(a=d1Not, b=d2, c=d3, d=true, e=true, f=true, g=true, out=dload2); // MD
+    // AD - use aload3
+    // AMD - use aload4
+    Or13(in[0]=dload1, in[1]=dload2, in[3]=aload3, in[4]=aload4, in[5..12]=false,
+        out=dload3);
+    And(a=dload3, b=instruction[15], out=dloadfinal);
+
+
+    // Logic for M's load bit
+    And7(a=d1Not, b=d2Not, c=d3, d=true, e=true, f=true, g=true, out=mload1); // M
+    // MD - use dload2
+    // MA - use aload2
+    // AMD - use aload4
+    Or13(in[0]=mload1, in[1]=dload2, in[2]=aload2, in[3]=aload4, in[4..12]=false,
+        out=mload2);
+    And(a=mload2, b=instruction[15], out=writeM);
+
+
+    // Jump logic
+    And7(a=j1Not, b=j2Not, c=j3, d=ngNot, e=zrNot, f=true, g=true, out=jload1); // JGT
+    And7(a=j1Not, b=j2, c=j3Not, d=ng, e=zr, f=true, g=true, out=jload2); // JEQ 
+    And7(a=j1Not, b=j2, c=j3, d=ngNot, e=true, f=true, g=true, out=jload3); // JGE
+    And7(a=j1, b=j2Not, c=j3Not, d=ngNot, e=true, f=true, g=true, out=jload4); // JLT
+    And7(a=j1, b=j2Not, c=j3, d=zrNot, e=true, f=true, g=true, out=jload5); // JNE
+    Or(a=zr, b=ng, out=jle);
+    And7(a=j1, b=j2, c=j3Not, d=jle, e=true, f=true, g=true, out=jload6); // JLE
+    And7(a=j1, b=j2, c=j3, d=true, e=true, f=true, g=true, out=jload7); // JMP
+    Or13(in[0]=jload1, in[1]=jload2, in[2]=jload3, in[3]=jload4, in[4]=jload5, in[5]=jload6,
+     in[6]=jload7, in[7..12]=false, out=jload8);
+    And(a=jload8, b=instruction[15], out=jmpfinal);
+
+    // used as increment pin
+    Not(in=jmpfinal, out=nojmp);
+
+
+
+}
