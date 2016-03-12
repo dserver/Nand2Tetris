@@ -94,7 +94,7 @@ CHIP CPU {
     */
     // cases when zx should be asserted - 0, 1, -1, A, M, A+1, M+1, A-1, M-1, !A, !M
     //                                   -A, -M
-    And7(a=aNot, b=c1, c=c2Not, d=c3, e=c4Not, f=c5, g=c6, out=zx1); // 0
+    And7(a=aNot, b=c1, c=c2Not, d=c3, e=c4Not, f=c5, g=c6Not, out=zx1); // 0
     And7(a=aNot, b=c1, c=c2, d=c3, e=c4, f=c5, g=c6,out=zx2); // 1
     And7(a=aNot, b=c1, c=c2, d=c3, e=c4Not, f=c5, g=c6Not, out=zx3); // -1
     And7(a=aNot, b=c1, c=c2, d=c3Not, e=c4Not, f=c5Not, g=c6Not, out=zx4); // A
@@ -109,8 +109,7 @@ CHIP CPU {
     And7(a=a, b=c1, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=zx13); // -M
     // Test to see if zx should be asserted
     Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zx4, in[4]=zx5, in[5]=zx6, in[6]=zx7,
-        in[8]=zx9, in[9]=zx10, in[10]=zx11, in[11]=zx12, in[12]=zx13, out=zx14);
-    Or(a=zx14, b=isAinstruction, out=zxfinal);
+        in[8]=zx9, in[9]=zx10, in[10]=zx11, in[11]=zx12, in[12]=zx13, out=zxfinal);
 
     /* *****************************************************************************
       ________     __
@@ -122,7 +121,8 @@ CHIP CPU {
                  
                  
     */
-    // cases where zy should be asserted - 0, 1, -1, D, D+1, D-1, -D
+    // cases where zy should be asserted - 0, 1, -1, D, !D, -D, D+1, D-1
+    // DO NOT ZERO ON A INSTRUCTION
     // 0 - use zx1
     // 1 - use zx2
     // -1 - use zx3
@@ -134,9 +134,11 @@ CHIP CPU {
     And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5, g=c6Not, out=zy3);
     // -D
     And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5, g=c6, out=zy4);
+    // !D
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5Not, g=c6, out=zy5);
     // Test to see if zy should be asserted
-    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zy1, in[4]=zy2, in[5]=zy3, in[6]=zy4, 
-        in[7..12]=false, out=zyfinal);
+    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zy1, in[4]=zy2, in[5]=zy3, in[6]=zy4,
+        in[7]=zy5, in[8..12]=false, out=zyfinal);
 
     /* *****************************************************************************
       _   ___   __
@@ -147,9 +149,31 @@ CHIP CPU {
      |_| \_/_/ \_\
                      
     */
-    // cases where nx should be asserted - D-A, D-M
-    // D-A/M - use f3 and f4
-    Or(a=f3, b=f4, out=nxfinal);
+    // cases: 1, -1, A, M, !A, !M, -A, -M, A+1, M+1, D+1, A-1, M-1, D|A, D-A, D-M
+    // 1 - use zx2
+    // -1 - use zx3
+    // A - use zx4
+    // M - use zx5
+    // !A - use zx10
+    // !M - use zx11
+    // -A - zx12
+    // -M - use zx13
+    // A+1 - use zx6
+    // M+1 - use zx7
+    // D+1 - use zy2
+    // A-1 - use zx8
+    // M-1 - uze zx9
+    // D|A
+    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4, f=c5Not, g=c6, out=nx1);
+    // D|M - use nx5
+    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4, f=c5Not, g=c6, out=nx5);
+    // D-A
+    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=nx2);
+    // D-M
+    And7(a=a, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=nx3);
+    Or13(in[0]=zx2, in[1]=zx3, in[2]=zx4, in[3]=zx5, in[4]=zx10, in[5]=zx11, in[6]=zx12,
+          in[7]=zx13, in[8]=zx6, in[9]=zx7, in[10]=zy2, in[11]=zx8, in[12]=zx9, out=nx4);
+    Or13(in[0]=nx1, in[2]=nx2, in[3]=nx3, in[4]=nx4, in[5]=nx5, in[6..12]=false, out=nxfinal);
 
 
     /* *****************************************************************************
@@ -161,14 +185,24 @@ CHIP CPU {
      |_| \_|  |_|   
                 
     */
-    // cases where ny should be asserted
+    // cases - 1, D, !D, -D, D+1, A+1, M+1, D-1, A-D, M-D, D|A, D|M
+    // 1 - use zx2
+    // D - use zy1
+    // -D - use zy4
+    // !D - use zy5
+    // D+1 - use zy2
+    // A+1 - use zx6
+    // M+1 - use zx7
     // D-1 - use zy3
-    // A/M-D
+    // A-D
     And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=ny1);
+    // M-D
     And7(a=a, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=ny2);
-    // D|A - use f6
-    // Test if ny should be asserted
-    Or13(in[0]=zy3, in[1]=false, in[2]=false, in[3]=f6, in[4]=ny1, in[5]=ny2, in[6..12]=false, out=nyfinal);
+    // D|A - use nx1
+    // D|M - use nx5
+    And7(a=a, b=c1Not, c=c2, d=c3Not, e=c4, f=c5Not, g=c6, out=ny3);
+    Or13(in[0]=zx2, in[1]=zy1, in[2]=zy4, in[3]=zy5, in[4]=zy2, in[5]=zx6, in[6]=zx7,
+          in[7]=zy3, in[8]=ny1, in[9]=ny2, in[10]=nx1, in[11]=ny3, in[12]=nx5, out=nyfinal);
 
 
     /* *****************************************************************************
@@ -180,32 +214,33 @@ CHIP CPU {
      |_|     
          
     */
-    // cases where f should be asserted (0, 1, -1, D, A/M, D-1, A/M-1, D+A
-    // D-A, A-D, D|A)
+    // cases - 0, 1, -1, -D, -A, -M, D+1, A+1, M+1, D-1, A-1, M-1, D+A, D+M, A-D, M-D
     // 0 - use zx1
     // 1 - use zx2
     // -1 - use zx3
-    // D - use zy1
-    // A - use zx4
-    // M - use zx5
-    // A-1/M-1 - use zx8 and zx9
+    // -D - use zy4
+    // -A - zx12
+    // -M - zx13
+    // D+1 - zy2
+    // A+1 - zx6
+    // M+1 - zx7
+    // D-1 - zy3
+    // A-1 - zx8
+    // M-1 - zx9
     // D+A
-    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4Not, f=c5, g=c6Not, out=f1); 
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4Not, f=c5, g=c6Not, out=f1);
     // D+M
     And7(a=a, b=c1Not, c=c2Not, d=c3Not, e=c4Not, f=c5, g=c6Not, out=f2);
-    // D-A
-    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=f3);
-    // D-M
-    And7(a=a, b=c1Not, c=c2, d=c3Not, e=c4Not, f=c5, g=c6, out=f4);
     // A-D
-    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=f5);
-    // D|A
-    And7(a=aNot, b=c1Not, c=c2, d=c3Not, e=c4, f=c5Not, g=c6, out=f6);
-    // D-1 - use zy3
-    // Test if f should be asserted
-    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zx4, in[4]=zx5, in[5]=zy1, in[6]=f1,
-        in[8]=zx9, in[9]=zx8, in[10]=f2, in[11]=f3, in[12]=f4, out=for);
-    Or13(in[0]=for, in[1]=f5, in[2]=f6, in[3]=isAinstruction, in[4]=zy3, in[5..12]=false, out=ffinal);
+    And7(a=aNot, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=f3);
+    // M-D
+    And7(a=a, b=c1Not, c=c2Not, d=c3Not, e=c4, f=c5, g=c6, out=f4);
+    // D-A - nx2
+    // D-M - nx3
+    Or13(in[0]=zx1, in[1]=zx2, in[2]=zx3, in[3]=zy4, in[4]=zx12, in[5]=zx13, in[6]=zy2,
+        in[8]=zx6, in[9]=zx7, in[10]=zy3, in[11]=zx8, in[12]=zx9, out=f5);
+    Or13(in[0]=f1, in[1]=f2, in[2]=f3, in[3]=f4, in[4]=nx2, in[5]=nx3, in[6]=f5, in[7..12]=false, out=ffinal);
+
 
     /* *****************************************************************************
       _   _  ____  
@@ -216,8 +251,8 @@ CHIP CPU {
      |_| \_|\____/ 
                    
     */
-    // cases where no should be asserted (-1, !D, !A/!M, -D, -A/-M)
-    // -1 - use zx3
+    // cases - 1, !D, !A, !M, -D, -A, -M, D+1, A+1, M+1, A-D, M-D, D|A, D|M
+    // 1 - zx2
     // !D
     And7(a=aNot, b=c1Not, c=c2Not, d=c3, e=c4, f=c5Not, g=c6, out=no1);
     // !A
@@ -227,11 +262,18 @@ CHIP CPU {
     // -D - use zy4
     // -A - use zx12
     // -M - use zx13
-    // D-A/M - use f3, f4
+    // D+1 - zy2
+    // A+1 - zx6
+    // M+1 - zx7
     // A/M-D - use ny1, ny2
+    // D|A - nx1
+    // D|M - nx5
+    // D-A - nx2
+    // D-M - nx3
     // Test if no should be asserted
-    Or13(in[0]=zx3, in[1]=no1, in[2]=no2, in[3]=no3, in[4]=zy4, in[5]=zx12, in[6]=zx13,
-        in[8]=f3, in[9]=f4, in[10]=ny1, in[11]=ny2, in[12]=false, out=nofinal);
+    Or13(in[0]=zx2, in[1]=no1, in[2]=no2, in[3]=no3, in[4]=zy4, in[5]=zx12, in[6]=zx13,
+        in[8]=zy2, in[9]=zx6, in[10]=zx7, in[11]=ny1, in[12]=ny2, out=no4);
+    Or13(in[0]=nx1, in[1]=nx5, in[2]=nx2, in[3]=nx3, in[4]=no4, in[5..12]=false, out=nofinal);
 
 
     /* *****************************************************************************
@@ -246,53 +288,47 @@ CHIP CPU {
     */
     // Test if A should load from instruction or ALU out
     Mux16(a[0..14]=instruction[0..14], a[15]=false,
-        b[0..15]=aluoutfinal, sel=instruction[15], out=aRegIn);
+        b[0..15]=aluout, sel=instruction[15], out=aRegIn);
     ARegister(in=aRegIn, load=aloadfinal, out=aout, out[0..14]=addressM);
-    DRegister(in=aluoutfinal, load=dloadfinal, out=dout);
-/*
-Function : ALU input bits
-0: zx, zy, f
-1: zx, zy, f g
--1: zx, zy, f, no
-D: zy, f
-A/M: zx, f
-!D: zy, f, no
-!A/!M: zx, f, no
--D: D, zy, no, g, f
--A: A, zx, no, g, f
-D+1: zy, g
-A+1/M+1: zx, g
-D-1: zy, ny, f
-A-1/M-1: zx, nx, f
-D+A/M: f
-D-A/M: ny, f, g
-A-D: nx, f, g
-D&A: none
-D|A: ny, f
+    DRegister(in=aluout, load=dloadfinal, out=dout);
 
 
-*/
-    /*
+
+    /* *****************************************************************************
                _     _    _     
          /\   | |   | |  | |  
         /  \  | |   | |  | | 
        / /\ \ | |   | |  | |  
       / ____ \| |___| |__| |
      /_/    \_\______\____/   
-                                                      
+                     
+
+      Function : ALU input bits
+      0: zx, zy, f
+      1: zx, zy, f g
+      -1: zx, zy, f, no
+      D: zy, f
+      A/M: zx, f
+      !D: zy, f, no
+      !A/!M: zx, f, no
+      -D: D, zy, no, g, f
+      -A: A, zx, no, g, f
+      D+1: zy, g
+      A+1/M+1: zx, g
+      D-1: zy, ny, f
+      A-1/M-1: zx, nx, f
+      D+A/M: f
+      D-A/M: ny, f, g
+      A-D: nx, f, g
+      D&A: none
+      D|A: ny, f                                 
     */
 
     And(a=instruction[15], b=a, out=amselector);
     Mux16(a=aout, b=inM, sel=amselector, out=amout);
     // ALU
     ALU(x=dout, y=amout, zx=zxfinal, nx=nxfinal, zy=zyfinal, ny=nyfinal, f=ffinal, no=nofinal, 
-        out=aluout, zr=zr, ng=ng);
-
-    // Test if we need to increment output
-    // A/M/D+1
-    Or13(in[0]=zx6, in[1]=zx7, in[2]=zy2, in[3..12]=false, out=incr);
-    Inc16(in=aluout, out=aluoutp1);
-    Mux16(a=aluout, b=aluoutp1, sel=incr, out=aluoutfinal, out=outM);
+        out=aluout, out=outM, zr=zr, ng=ng);
 
 
     
@@ -346,7 +382,7 @@ D|A: ny, f
 
     // Jump logic
     And7(a=j1Not, b=j2Not, c=j3, d=ngNot, e=zrNot, f=true, g=true, out=jload1); // JGT
-    And7(a=j1Not, b=j2, c=j3Not, d=ng, e=zr, f=true, g=true, out=jload2); // JEQ 
+    And7(a=j1Not, b=j2, c=j3Not, d=true, e=zr, f=true, g=true, out=jload2); // JEQ 
     And7(a=j1Not, b=j2, c=j3, d=ngNot, e=true, f=true, g=true, out=jload3); // JGE
     And7(a=j1, b=j2Not, c=j3Not, d=ng, e=true, f=true, g=true, out=jload4); // JLT
     And7(a=j1, b=j2Not, c=j3, d=zrNot, e=true, f=true, g=true, out=jload5); // JNE
