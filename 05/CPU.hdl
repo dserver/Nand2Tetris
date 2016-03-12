@@ -301,27 +301,10 @@ CHIP CPU {
        / /\ \ | |   | |  | |  
       / ____ \| |___| |__| |
      /_/    \_\______\____/   
-                     
-
-      Function : ALU input bits
-      0: zx, zy, f
-      1: zx, zy, f g
-      -1: zx, zy, f, no
-      D: zy, f
-      A/M: zx, f
-      !D: zy, f, no
-      !A/!M: zx, f, no
-      -D: D, zy, no, g, f
-      -A: A, zx, no, g, f
-      D+1: zy, g
-      A+1/M+1: zx, g
-      D-1: zy, ny, f
-      A-1/M-1: zx, nx, f
-      D+A/M: f
-      D-A/M: ny, f, g
-      A-D: nx, f, g
-      D&A: none
-      D|A: ny, f                                 
+      
+      To figure out the correct settings for ALU inputs (zx, nx, etc) I finally
+      just ended up looking at ALU.tst from chapter 2. There is no way I would have
+      figured out how to add 1 without a seperate chip and other logic (my original design)                             
     */
 
     And(a=instruction[15], b=a, out=amselector);
