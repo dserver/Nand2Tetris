@@ -3,9 +3,7 @@
 
 
 import unittest
-import AbstractInstructionFile from AbstractInstructionFile
-
-
+from AbstractInstructionFile import AbstractInstructionFile
 
 
 class Parser:
@@ -21,8 +19,9 @@ class Parser:
 
     def __init__(self, instructionFile):
         self.instructionsFile = instructionFile
-        self.currentCommandBeingParsed = instructionFile.getInstruction()
-        self.setCurrentCommandType(self.currentCommandBeingParsed)
+        if (instructionFile.hasNext()):
+            self.currentCommandBeingParsed = instructionFile.getInstruction()
+            self.setCurrentCommandType(self.currentCommandBeingParsed)
         
 
 
@@ -36,7 +35,7 @@ class Parser:
         if (self.hasMoreCommands()):
             self.instructionsFile.advance()
             self.currentCommandBeingParsed = self.instructionsFile.getInstruction()
-            self.setCurrentCommandType(command)
+            self.setCurrentCommandType(self.currentCommandBeingParsed)
 
 
 
@@ -60,26 +59,24 @@ class Parser:
     def destIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
             if (self.currentCommandBeingParsed.find("=") > -1):
-                (com, dest) = self.currentCommandBeingParsed.split("=")
-                return dest
-            elif (self.currentCommandBeingParsed.find(";") > -1):
-                (dest, jmp) = self.currentCommandBeingParsed.split(";")
+                (dest, com) = self.currentCommandBeingParsed.split("=")
                 return dest
 
 
     def compIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
             if (self.currentCommandBeingParsed.find("=") > -1):
-                (com, dest) = self.currentCommandBeingParsed.split("=")
+                (dest, com) = self.currentCommandBeingParsed.split("=")
                 return com
-
+            elif (self.currentCommandBeingParsed.find(";") > -1):
+                (dest, jmp) = self.currentCommandBeingParsed.split(";")
+                return dest
 
     def jmpIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
             if (self.currentCommandBeingParsed.find(";") > -1):
                 (dest, jmp) = self.currentCommandBeingParsed.split(";")
                 return jmp
-
 
 
     def getCommandType(self):
@@ -97,14 +94,14 @@ class ParserTests(unittest.TestCase):
     def testHasMoreCommands(self):
         instructionFile = TestAssemblyFile(["@100 D=1 M=A+1"])
         p = Parser(instructionFile)
-        self.assertEquals(p.hasNext(), True, 'should have more commands')
+        self.assertEquals(p.hasMoreCommands(), True, 'should have more commands')
 
 
 
     def testNoMoreCommands(self):
         instructionFile = TestAssemblyFile([])
         p = Parser(instructionFile)
-        self.assertEquals(p.hasNext(), False, 'shouldn\'t have more commands')
+        self.assertEquals(p.hasMoreCommands(), False, 'shouldn\'t have more commands')
 
 
 
@@ -114,10 +111,10 @@ class ParserTests(unittest.TestCase):
         self.assertEquals(p.getCurrentCommand(), "@100", 'current command incorrect')
 
 
-    def testAdvance(self):
+    def testReadNextLine(self):
         instructionFile = TestAssemblyFile(["@100 D=1 M=A+1"])
         p = Parser(instructionFile)
-        p.advance()
+        p.readNextLine()
         self.assertEquals(p.getCurrentCommand(), "D=1", 'current command should be D=1')
 
 
@@ -159,4 +156,5 @@ class ParserTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    from TestAssemblyFile import TestAssemblyFile
     unittest.main()

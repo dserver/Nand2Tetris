@@ -1,7 +1,7 @@
 
 class AbstractInstructionFile:
-    """ Provides interface for parser object to retrieve instructions
-    from """
+    """ Provides interface for modules to read instructions from, but 
+    not write """
 
     def hasNextInstruction(self):
         raise NotImplementedError("Should implement this.")

@@ -1,14 +1,17 @@
 
-def TestAssemblyFile(AbstractInstructionFile):
+from AbstractInstructionFile import AbstractInstructionFile
+
+class TestAssemblyFile(AbstractInstructionFile):
 
     instructions = []
     currentInstructionIndex = 0
 
     def __init__(self, instructionList):
-        self.instructions = instructionList
+        if (len(instructionList) > 0):
+            self.instructions = instructionList[0].split()
 
     def hasNext(self):
-        if (currentInstructionIndex == len(self.instructions):
+        if (self.currentInstructionIndex == len(self.instructions)):
             return False
         return True
 
@@ -16,4 +19,4 @@ def TestAssemblyFile(AbstractInstructionFile):
         self.currentInstructionIndex += 1
 
     def getInstruction(self):
-        return self.instructions[currentInstructionIndex]
+        return self.instructions[self.currentInstructionIndex]
