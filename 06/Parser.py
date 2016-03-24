@@ -1,113 +1,162 @@
 # Author: Jonathan Henk
 # The specification for this class was given by the authors.
 
-import string, os
+
+import unittest
+import AbstractInstructionFile from AbstractInstructionFile
 
 
-# copies the original assembly file into another file where
-# all comments and newlines are removed for easy translation in the
-# parser functions
-def copy_and_clean(asm_file):
-    cp_file = open(os.getenv('TEMP') + '\\temp_assembly_file.txt', 'w+')
-    orig_file = open(asm_file, 'r')
-    while(1):
-        line = orig_file.readline()
-        if (line == ''):
-            break
 
-        # remove comments and whitespace
-        line = clean_line(line)
-
-        # after all processing, write line to final assembly file if its still relevant
-        # ie. the line will translate to a binary instruction
-        if (line != '' and line != '\n'):
-            cp_file.write(line)
-            cp_file.flush() # garbage gets written sometimes. Not sure why
-
-    orig_file.close()
-    cp_file.close()
-    return
-
-# removes all comments and whitespace
-def clean_line(line):
-    # remove comments
-    comment = line.find("//")
-    if (comment > -1):
-        line = line[0:comment]
-
-    # remove white space
-    if (line.find(" ") > -1):
-        line = string.join(line.split(), '') + "\n" # hacky way to get newline back in there
-
-    return line
 
 class Parser:
+    """ Parses instructions from an instructions file. Used to
+    get instruction type, next instruction, and fields within the 
+    instruction type"""
 
-    commands = [] # each line in the input assembly file is stored here
-    command = "" # current command
-    command_i = 0 # which 'line' in the file we're on
+
+    currentCommandBeingParsed = "" # current command
     commandType = ""
+    instructionsFile = None
 
 
-    def __init__(self, filename):
-        copy_and_clean(filename)
-        asm_file = open(os.getenv('TEMP') + '\\temp_assembly_file.txt', 'r')
-        for line in asm_file:
-            if (line.find('\n') > -1):
-                self.commands.append(line[:-1])
-            else:
-                self.commands.append(line)
-
-        # hacky way to get first command read
-        self.command_i = -1 
-        self.advance()
+    def __init__(self, instructionFile):
+        self.instructionsFile = instructionFile
+        self.currentCommandBeingParsed = instructionFile.getInstruction()
+        self.setCurrentCommandType(self.currentCommandBeingParsed)
+        
 
 
     # returns if there are any commands left to parse
     def hasMoreCommands(self):
-        if (self.command_i == len(self.commands)):
-            return False
-        return True
+        return self.instructionsFile.hasNext()
 
 
     # read next command. Skips whitespace and comments
-    def advance(self):
-        self.command_i += 1
-        self.command = commands[self.command_i]
-        if (self.command.find('=') > -1 or self.command.find(';') > -1):
+    def readNextLine(self):
+        if (self.hasMoreCommands()):
+            self.instructionsFile.advance()
+            self.currentCommandBeingParsed = self.instructionsFile.getInstruction()
+            self.setCurrentCommandType(command)
+
+
+
+    def setCurrentCommandType(self, command):
+        if (command.find('=') > -1 or command.find(';') > -1):
             self.commandType = "C_COMMAND"
-        elif (self.command.find("@") > -1):
+        elif (command.find("@") > -1):
             self.commandType = "A_COMMAND"
-        elif (self.command.find("(") > -1):
+        elif (command.find("(") > -1):
             self.commandType = "L_COMMAND"
 
 
-    def symbol(self):
+
+    def symbolIn_L_or_A_command(self):
         if (self.commandType == "L_COMMAND"):
-            return self.command[1:-1]
+            return self.currentCommandBeingParsed[1:-1]
         elif (self.commandType == "A_COMMAND"):
-            return self.command[1:]
+            return self.currentCommandBeingParsed[1:]
 
 
-    def dest(self):
+    def destIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
-            if (self.command.find("=") > -1):
-                (com, dest) = self.command.split("=")
+            if (self.currentCommandBeingParsed.find("=") > -1):
+                (com, dest) = self.currentCommandBeingParsed.split("=")
                 return dest
-            elif (self.command.find(";") > -1):
-                (dest, jmp) = self.command.split(";")
+            elif (self.currentCommandBeingParsed.find(";") > -1):
+                (dest, jmp) = self.currentCommandBeingParsed.split(";")
                 return dest
 
 
-    def comp(self):
+    def compIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
-            if (self.command.find("=") > -1):
-                (com, dest) = self.command.split("=")
+            if (self.currentCommandBeingParsed.find("=") > -1):
+                (com, dest) = self.currentCommandBeingParsed.split("=")
                 return com
 
 
-    def jmp(self):
+    def jmpIn_C_command(self):
         if (self.commandType == "C_COMMAND"):
-            if (self.command.find(";") > -1):
-                (dest, jmp) = self.command.split(";")
+            if (self.currentCommandBeingParsed.find(";") > -1):
+                (dest, jmp) = self.currentCommandBeingParsed.split(";")
                 return jmp
+
+
+
+    def getCommandType(self):
+        return self.commandType
+
+
+    def getCurrentCommand(self):
+        return self.currentCommandBeingParsed
+
+
+
+class ParserTests(unittest.TestCase):
+    """ Unit tests for Parser class"""
+
+    def testHasMoreCommands(self):
+        instructionFile = TestAssemblyFile(["@100 D=1 M=A+1"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.hasNext(), True, 'should have more commands')
+
+
+
+    def testNoMoreCommands(self):
+        instructionFile = TestAssemblyFile([])
+        p = Parser(instructionFile)
+        self.assertEquals(p.hasNext(), False, 'shouldn\'t have more commands')
+
+
+
+    def testGetCurrentCommand(self):
+        instructionFile = TestAssemblyFile(["@100 D=1"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.getCurrentCommand(), "@100", 'current command incorrect')
+
+
+    def testAdvance(self):
+        instructionFile = TestAssemblyFile(["@100 D=1 M=A+1"])
+        p = Parser(instructionFile)
+        p.advance()
+        self.assertEquals(p.getCurrentCommand(), "D=1", 'current command should be D=1')
+
+
+
+    def testCommandTypeC(self):
+        instructionFile = TestAssemblyFile(["A=D+1"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.getCommandType(), "C_COMMAND", 'should be C command')
+
+
+
+    def testCommandTypeA(self):
+        instructionFile = TestAssemblyFile(["@xyz"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.getCommandType(), "A_COMMAND", 'should be A command')
+
+
+
+    def testCommandTypeL(self):
+        instructionFile = TestAssemblyFile(["(loop1)"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.getCommandType(), "L_COMMAND", 'should be L command')
+
+
+
+    def testCorrectSymbolInDestCompCommand(self):
+        instructionFile = TestAssemblyFile(["A=D+1"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.compIn_C_command(), "D+1", 'comp should be d+1')
+        self.assertEquals(p.destIn_C_command(), "A", 'comp should be A')
+
+
+
+    def testCorrectSymbolInJumpCompCommand(self):
+        instructionFile = TestAssemblyFile(["D;JNE"])
+        p = Parser(instructionFile)
+        self.assertEquals(p.compIn_C_command(), "D", 'comp should be d')
+        self.assertEquals(p.jmpIn_C_command(), "JNE", 'comp should be JNE')
+
+
+if __name__ == '__main__':
+    unittest.main()
