@@ -9,7 +9,7 @@ class fakesymboltable:
         pass
 
     def contains(self, symbol):
-        pass
+        return True
 
     def getAddress(self, symbol):
-        pass
+        return 110

@@ -73,17 +73,25 @@ class Code:
         else:
             return self.mnemonics["jump"]["null"]
 
-    # for @value instructions. Returns binary of value truncated
-    # to 15 bits
+
     def value(self, val):
+        """
+        :param val: integer
+        :return: "0b0000000000000" , ie, the binary of value as a string
+        """
         binval = bin(val)
         if (len(binval) - 2 > 15):
             binval = '0b' + binval[-15:]
         elif (len(binval) - 2 == 15):
             return binval
         elif (len(binval) - 2 < 15):
-            length = len(binval)
-            binval = str(binval)
-            for i in xrange(length, 18):
-                binval += "0"
+            binval = str(binval)[2:]
+            numberOfZerosToAdd = 16 - len(binval)
+            zeros = ""
+            for i in xrange(0, numberOfZerosToAdd):
+                zeros += "0"
+
+            binval = "0b" + zeros + binval
+
+
         return binval

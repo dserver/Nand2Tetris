@@ -26,12 +26,12 @@ class Assembler:
             value = instruction[1:]
             if (str.isdigit(value)):
                 value_binary = self.code.value(int(value))
-                return "0b" + value_binary
+                return value_binary
             else:
                 if (self.symbolTable.contains(value)):
                     addr = self.symbolTable.getAddress(value)
                     addr_binary_correct_length = self.code.value(addr)
-                    binaryInstruction = "0b" + addr_binary_correct_length
+                    binaryInstruction = addr_binary_correct_length
                     return binaryInstruction
                 else:
                     raise RuntimeError("Symbol not found")
