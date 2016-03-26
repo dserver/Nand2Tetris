@@ -77,7 +77,7 @@ class Code:
     def value(self, val):
         """
         :param val: integer
-        :return: "0b0000000000000" , ie, the binary of value as a string
+        :return: "0bxxxxxxxxxxxxxxxx" , ie, the binary of value as a string
         """
         binval = bin(val)
         if (len(binval) - 2 > 15):

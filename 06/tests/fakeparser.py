@@ -25,22 +25,26 @@ class fakeparser:
             self.fakeInstructionType = "A"
         elif (instruction == "L"):
             self.fakeInstructionType = "L"
-        elif (instruction == "C_DP1"):
+        elif (instruction == "D=D+1"):
             self.fakeDest = "D"
             self.fakeComp = "D+1"
             self.fakeInstructionType = "C"
-        elif (instruction == 'C_APDM'):
+        elif (instruction == "A=D+M"):
             self.fakeDest = "A"
             self.fakeComp = "D+M"
-            self.fakeInstruction = "C"
-        elif (instruction == "D0"):
-            self.fakeDest = "D"
-            self.fakeComp = "0"
             self.fakeInstructionType = "C"
         elif (instruction == "D0"):
             self.fakeDest = "D"
             self.fakeComp = "0"
             self.fakeInstructionType = "C"
+        elif (instruction == "D0"):
+            self.fakeDest = "D"
+            self.fakeComp = "0"
+            self.fakeInstructionType = "C"
+        elif (instruction == "0;JNE"):
+            self.fakeComp = "0"
+            self.fakeJmp = "JNE"
+            self.fakeInstructionType = "J"
 
     def dest(self):
         return self.fakeDest
