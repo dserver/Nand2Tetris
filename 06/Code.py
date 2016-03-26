@@ -1,4 +1,5 @@
 
+
 class Code:
 
     mnemonics = {"comp": {"null": 0b1110000000 << 6,
@@ -50,8 +51,8 @@ class Code:
                          "JMP": 0b111
                         }
                 }
-            
-    # dest(str) -> binary equivalent of str        
+
+    # dest(str) -> binary equivalent of str
     def dest(self, dstr):
         if (self.mnemonics["dest"].has_key(dstr)):
             return self.mnemonics["dest"].get(dstr)
@@ -63,7 +64,7 @@ class Code:
         if (self.mnemonics["comp"].has_key(cstr)):
             return self.mnemonics["comp"].get(cstr)
         else:
-            return self.mnemonics["comp"]["null"]  
+            return self.mnemonics["comp"]["null"]
 
     # jmp(jstr) -> binary value of jstr
     def jmp(self, jstr):
@@ -78,4 +79,11 @@ class Code:
         binval = bin(val)
         if (len(binval) - 2 > 15):
             binval = '0b' + binval[-15:]
+        elif (len(binval) - 2 == 15):
+            return binval
+        elif (len(binval) - 2 < 15):
+            length = len(binval)
+            binval = str(binval)
+            for i in xrange(length, 18):
+                binval += "0"
         return binval

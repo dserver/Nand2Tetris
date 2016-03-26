@@ -1,94 +1,39 @@
-from Parser import Parser
+
 from Code import Code
-import sys
-import unittest
 
 class Assembler:
 
-    sourceFile = None
-    destinationFile = None
+    parserObj = None
+    symbolTable = None
+    code = Code()
 
-    currentInstruction = ""
-    currentInstructionAssembled = ""
+    def __init__(self):
+        pass
 
-    def __init__(self, sourceFile, destinationFile):
-        self.sourceFile = sourceFile
-        self.destinationFile = destinationFile
+    def setParser(self, p):
+        self.parserObj = p
 
+    def setSymbolTable(self, s):
+        self.symbolTable = s
 
-    """
-    Returns '0bxxxxxxxxxxxx', the binary string of instruction """
     def assembleInstruction(self, instruction):
-        pass
+        self.parserObj.setInstruction(instruction)
+        command_type = self.parserObj.instructionType()
 
-    """
-    Write binary instruction to destination file """
-    def writeInstruction(self, instruction):
-        pass
+        binaryInstruction = ""
 
-    """ Assemble sourceFile and output to sourceFile.hack """
-    def assemble(self):
-        pass
-
-    def assembleNextInstruction(self):
-        pass
-
-    def hasNextInstruction(self):
-        pass
-
-
-
-
-class AssemblerTest(unittest.TestCase):
-
-    def testAssembleInstruction(self):
-        testSourceFile = FakeFileReaderWriter(["A=1", "D=0", "@100"])
-        testDestinationFile = FakeFileReaderWriter([])
-        a = Assembler(testSourceFile, testDestinationFile)
-        self.assertEquals(a.assembleNextInstruction(),
-                          '0b1110111111100000', "Output instruction incorrect")
-
-        self.assertEquals(a.assembleNextInstruction(),
-                          '0b1110101010010000', "Output instruction incorrect")
+        if (command_type == "A"):
+            value = instruction[1:]
+            if (str.isdigit(value)):
+                value_binary = self.code.value(int(value))
+                return "0b" + value_binary
+            else:
+                if (self.symbolTable.contains(value)):
+                    addr = self.symbolTable.getAddress(value)
+                    addr_binary_correct_length = self.code.value(addr)
+                    binaryInstruction = "0b" + addr_binary_correct_length
+                    return binaryInstruction
+                else:
+                    raise RuntimeError("Symbol not found")
 
 
-
-    def testHasNextInstruction(self):
-        testSourceFile = FakeFileReaderWriter(["A=1", "D=0", "@100"])
-        testDestinationFile = FakeFileReaderWriter([])
-        a = Assembler(testSourceFile, testDestinationFile)
-        self.assertEquals(a.hasNextInstruction(),
-                          True, "Should have next instruction")
-
-
-
-    def testNoNextInstruction(self):
-        testSourceFile = FakeFileReaderWriter([])
-        testDestinationFile = FakeFileReaderWriter([])
-        a = Assembler(testSourceFile, testDestinationFile)
-        self.assertEquals(a.hasNextInstruction(), False, "Should be no next instruction")
-
-
-
-    def testNoNextInstructionAfterAdvancingToEnd(self):
-        testSourceFile = FakeFileReaderWriter(["A=1"])
-        testDestinationFile = FakeFileReaderWriter([])
-        a = Assembler(testSourceFile, testDestinationFile)
-        a.assembleNextInstruction()
-        self.assertEquals(a.hasNextInstruction(), False, "Should be no next instruction")
-
-
-
-    def testWriteAssembledInstruction(self):
-        testSourceFile = FakeFileReaderWriter(["A=1", "D=0", "@100"])
-        testDestinationFile = FakeFileReaderWriter([])
-        a = Assembler(testSourceFile, testDestinationFile)
-        a.writeInstruction('0b1110111111100000')
-        self.assertEquals(testDestinationFile.readLine(), '0b1110111111100000', 
-            "Failed to write correct instruction")
-
-
-if __name__ == "__main__":
-    from FakeFileReaderWriter import FakeFileReaderWriter
-
-    unittest.main()
