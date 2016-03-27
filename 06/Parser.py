@@ -25,6 +25,14 @@ class Parser:
             (com, jmp) = self.instruction.split(";")
             return jmp
 
+    def isSymbolicAInstruction(self, typeAinstruction):
+        value = typeAinstruction[1:]
+        if (str.isdigit(value)):
+            return False
+        else:
+            return True
+
+
     def setInstruction(self, instruction):
         if (instruction.find('=') > -1):
             self.commandType = "C"

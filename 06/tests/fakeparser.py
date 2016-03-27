@@ -57,3 +57,10 @@ class fakeparser:
 
     def instructionType(self):
         return self.fakeInstructionType
+
+    def isSymbolicAInstruction(self, typeAinstruction):
+        value = typeAinstruction[1:]
+        if (str.isdigit(value)):
+            return False
+        else:
+            return True

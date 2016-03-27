@@ -1,6 +1,7 @@
 
 class SymbolTable:
     table = dict()
+
     def addEntry(self, symbol, address):
         self.table[symbol] = address
 

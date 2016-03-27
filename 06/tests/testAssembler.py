@@ -52,5 +52,16 @@ class TestAssembler(unittest.TestCase):
         self.assertEqual(["0b0000000000000010", "0b1110101010000101", "0b1110011111010000", "0b1111000010100000"],
                          assembledInstructions)
 
+    def testAssembleWithSymbolicA(self):
+        instructions = ["@2", "0;JNE", "@myVariable", "D=D+1", "A=D+M"]
+        assembledInstructions = self.assembler.assemble(instructions)
+        self.assertEqual(["0b0000000000000010", "0b1110101010000101", "0b0000000001101110",
+                          "0b1110011111010000", "0b1111000010100000"],
+                         assembledInstructions)
+
+    def testFirstPass(self):
+        instructions = ["@2", "0;JNE", "@userSymbol", "D=D+1", "A=D+M"]
+        self.assertEqual(17, self.assembler.firstPass(instructions))
+
 
 

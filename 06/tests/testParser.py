@@ -37,3 +37,7 @@ class parsertests(unittest.TestCase):
     def testJump(self):
         self.parser.setInstruction("0;JNE")
         self.assertEqual("JNE", self.parser.jmp())
+
+    def testIsSymbolicAInstruction(self):
+        self.assertTrue(self.parser.isSymbolicAInstruction("@symbol"))
+        self.assertFalse(self.parser.isSymbolicAInstruction("@100"))

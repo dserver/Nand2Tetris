@@ -18,9 +18,12 @@ class Assembler:
     def setSymbolTable(self, s):
         self.symbolTable = s
 
-    def assemble(self, instructionList):
+    def assemble(self, cleanInstructionList):
         assembledInstructions = []
-        for instruction in instructionList:
+        for instruction in cleanInstructionList:
+            self.parserObj.setInstruction(instruction)
+            if self.parserObj.instructionType == "L":
+                continue
             assembledInstructions.append(self.assembleInstruction(instruction))
 
         return assembledInstructions
@@ -77,6 +80,25 @@ class Assembler:
             dest_binary = self.code.dest(dest)
             jmp_binary = self.code.jmp(jmp)
             return str(bin(jmp_binary | comp_binary | dest_binary))
+
+    def firstPass(self, cleanInstructionList):
+        if (self.symbolTable is None):
+            raise RuntimeError("Symbol table must be set before first pass.")
+
+        locationCounter = 16
+
+        for instruction in cleanInstructionList:
+            self.parserObj.setInstruction(instruction)
+            type = self.parserObj.instructionType()
+            if type is "A" and self.parserObj.isSymbolicAInstruction(instruction):
+                self.symbolTable.addEntry(instruction[1:], locationCounter)
+                locationCounter += 1
+
+        return locationCounter
+
+    def secondPass(self, cleanInstructionList, locationCounter):
+        pass
+
 
 
 
