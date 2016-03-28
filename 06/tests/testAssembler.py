@@ -53,6 +53,7 @@ class TestAssembler(unittest.TestCase):
                          assembledInstructions)
 
     def testAssembleWithSymbolicA(self):
+        # symbol table already initialized in setUp() to return 110 for any symbol
         instructions = ["@2", "0;JNE", "@myVariable", "D=D+1", "A=D+M"]
         assembledInstructions = self.assembler.assemble(instructions)
         self.assertEqual(["0b0000000000000010", "0b1110101010000101", "0b0000000001101110",
@@ -61,7 +62,11 @@ class TestAssembler(unittest.TestCase):
 
     def testFirstPass(self):
         instructions = ["@2", "0;JNE", "@userSymbol", "D=D+1", "A=D+M"]
-        self.assertEqual(17, self.assembler.firstPass(instructions))
+        self.assertEqual(5, self.assembler.firstPass(instructions))
 
+    # def testSecondPass(self):
+    #     instructions = ["(loop)", "@loop", "0;JEQ"]
+    #     self.assertEqual(["0b0000000000000000", "0b1110101010000010"], self.assembler.secondPass(instructions))
+    #
 
 

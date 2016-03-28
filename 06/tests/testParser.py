@@ -18,6 +18,10 @@ class parsertests(unittest.TestCase):
         self.parser.setInstruction("(loop)")
         self.assertEqual("L", self.parser.instructionType())
 
+    def test_InstructionTypeLAgain(self):
+        self.parser.setInstruction("(OUTPUT_TEST)")
+        self.assertEqual("L", self.parser.instructionType())
+
     def test_InstructionTypeL(self):
         self.parser.setInstruction("0;JNE")
         self.assertEqual("J", self.parser.instructionType())
