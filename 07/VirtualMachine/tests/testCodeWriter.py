@@ -33,3 +33,20 @@ class testCodeWriter(unittest.TestCase):
         correct_translate = ['@SP', 'M=M-1', 'A=M', 'D=M', '@SP', 'M=M-1', 'A=M', 'D=D-M', '@EQUAL2', 'D;JEQ', '@NOTEQUAL2', '0;JEQ', '(EQUAL2)',
                               '@SP', 'A=M', 'M=0', '@CONTINUE2', '0;JEQ', '(NOTEQUAL2)', '@SP', 'A=M', 'M=-1', '(CONTINUE2)', '@SP', 'M=M+1']
         self.assertEqual(translated, correct_translate)
+
+
+    def testPushNoOffset(self):
+        instruction = "push local 0"
+        translated = self.codewriter.translatePushPop(instruction)
+
+        correct_translation = ["@LCL", "A=M", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+
+        self.assertEqual(translated, correct_translation)
+
+    def testPush2Offset(self):
+        instruction = "push local 2"
+        translated = self.codewriter.translatePushPop(instruction)
+
+        correct_translation = ["@2", "D=A", "@LCL", "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+        self.assertEqual(translated, correct_translation)
+

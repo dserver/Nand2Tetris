@@ -58,6 +58,8 @@ class Parser:
             else:
                 raise RuntimeError("Invalid 2 arg command")
 
+    def arg0(self):
+        return self.currentInstruction.split()[0]
 
     def arg1(self):
         '''

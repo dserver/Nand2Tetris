@@ -19,4 +19,10 @@ class testParser(unittest.TestCase):
         self.assertEqual(self.parser.arg2(), "2")
 
 
+    def testArg0Push(self):
+        instruction = "push local 0"
+        self.parser.setInstruction(instruction)
+        self.assertEqual(self.parser.arg0(), "push")
+
+
 

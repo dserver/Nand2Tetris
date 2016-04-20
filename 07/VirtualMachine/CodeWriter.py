@@ -1,4 +1,4 @@
-from VirtualMachine.Parser import Parser
+from Parser import Parser
 
 class CodeWriter:
 
@@ -10,7 +10,18 @@ class CodeWriter:
         :return:
         '''
         self.parser = Parser()
-        self.eqCounter = 0
+        self.eqCounter = 0 # appended to end of EQUAL labels so they are unique
+        self.labels = {"local": "LCL",
+                       "argument": "ARG",
+                       "this": "THIS",
+                       "that": "THAT"}
+
+        self.filename = ""
+        self.file = None
+
+
+
+
 
     def setFileName(self, fileName):
         '''
@@ -18,7 +29,20 @@ class CodeWriter:
         :param fileName:
         :return:
         '''
-        pass
+        self.filename = fileName[:-3]
+
+
+
+
+    def translate(self, command):
+        self.parser.setInstruction(command)
+        if self.parser.commandType(command) == 0:
+            return self.translateArithmetic(command)
+        elif self.parser.commandType(command) in range(1,3):
+            return self.translatePushPop(command)
+
+
+
 
     def translateArithmetic(self, command):
         '''
@@ -26,6 +50,8 @@ class CodeWriter:
         arithmetic command
         :param command: command string
         :return: list where each element is one line of assembly code
+
+        :todo "sub", "neq", "gt", "lt", "and", "or", "not"]
         '''
         self.parser.setInstruction(command)
         if self.parser.currentInstructionType != self.parser.C_ARITHMETIC:
@@ -34,12 +60,95 @@ class CodeWriter:
         if command == "add":
             return ["@SP", "M=M-1", "A=M", "D=M", "@SP", "M=M-1", "A=M", "M=D+M",
                              "@SP", "M=M+1"]
+        elif command == "sub":
+            return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "M=M-D", "@SP", "M=M-1"]
+        elif command == "neg":
+            return ["@SP", "A=M", "A=A-1", "M=-M"]
         elif command == "eq":
             self.eqCounter += 1
             return ['@SP', 'M=M-1', 'A=M', 'D=M', '@SP', 'M=M-1', 'A=M', 'D=D-M', '@EQUAL' + str(self.eqCounter), 'D;JEQ', '@NOTEQUAL' + str(self.eqCounter), '0;JEQ',
                      '(EQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=0', '@CONTINUE'  + str(self.eqCounter),
                                 '0;JEQ', '(NOTEQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=-1',
                      '(CONTINUE' + str(self.eqCounter) + ')', '@SP', 'M=M+1']
+
+
+
+
+    def translatePushPop(self, command):
+        '''
+        Return assembly code for a given push/pop VM command, ie push local 2
+        Calls translatePush or translatePop depending on type
+        :param command:
+        :return:
+        '''
+
+        self.parser.setInstruction(command)
+        if (self.parser.currentInstructionType != self.parser.C_PUSH
+            and self.parser.currentInstructionType != self.parser.C_POP):
+            raise RuntimeError("Translate Push Pop failed - not C_PUSH or C_POP")
+
+        if self.parser.currentInstructionType == self.parser.C_POP:
+            return self.translatePop(command)
+        else:
+            return self.translatePush(command)
+
+
+
+
+
+    def translatePush(self, command):
+        '''
+        return assembly instructions for any push VM command
+        :param command:
+        :return:
+        '''
+        self.parser.setInstruction(command)
+        label = self.parser.arg1()
+        offset = int(self.parser.arg2())
+
+        if (label in self.labels):
+            label = self.labels[label]
+        else:
+            label = self.fileName + "." + offset
+
+        if offset == 0:
+            return ["@" + label, "A=M", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+
+
+        return ["@" + str(offset), "D=A", "@" + label, "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+
+
+
+
+
+
+
+    def translatePop(self, command):
+        self.parser.setInstruction(command)
+
+        label = self.parser.arg1()
+        offset = self.parser.arg2()
+
+        if (label in self.labels):
+            label = self.labels[label]
+        else:
+            label = self.fileName + "." + offset
+
+        if offset == 0:
+            return ["@SP", "A=M", "A=A-1", "D=M", "@" + label, "A=M", "M=D"]
+
+
+        instructions = ["@SP", "A=M", "A=A-1", "D=M", "@" + label, "A=M", "M=D"]
+        for i in range(0, offset):
+            instructions.append("A=A+1")
+        instructions.append("M=D")
+
+        return instructions
+
+
+
+
+
 
     def writePushPop(self, command):
         '''
@@ -48,7 +157,13 @@ class CodeWriter:
         :param command:
         :return:
         '''
+
+        #for line in self.translatePushPop(command):
+         #   self.file.write(line + '\n')
         pass
+
+
+
 
     def close(self):
         '''
@@ -56,3 +171,4 @@ class CodeWriter:
         :return:
         '''
         pass
+        #self.file.close()
