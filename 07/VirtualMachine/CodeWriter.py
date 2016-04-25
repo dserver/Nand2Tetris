@@ -11,30 +11,32 @@ class CodeWriter:
         '''
         self.parser = Parser()
         self.eqCounter = 0 # appended to end of EQUAL labels so they are unique
-        self.labels = {"local": "LCL",
+        self.memoryMappedRegisters = {"local": "LCL",
                        "argument": "ARG",
-                       "this": "THIS",
-                       "that": "THAT"}
+                       "this": "R3",
+                       "that": "R4",
+                       "pointer": "R3",
+                        "temp": "R5"}
 
-        self.filename = ""
+        self.currentVMFile = ""
         self.file = None
 
 
 
 
 
-    def setFileName(self, fileName):
+    def setCurrentVMFile(self, fileName):
         '''
         Changes VM file that is currently being translated
         :param fileName:
         :return:
         '''
-        self.filename = fileName[:-3]
+        self.currentVMFile = fileName[:-3]
 
 
 
 
-    def translate(self, command):
+    def assembleVMCommand(self, command):
         self.parser.setInstruction(command)
         if self.parser.commandType(command) == 0:
             return self.translateArithmetic(command)
@@ -64,11 +66,30 @@ class CodeWriter:
             return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "M=M-D", "@SP", "M=M-1"]
         elif command == "neg":
             return ["@SP", "A=M", "A=A-1", "M=-M"]
+        elif command == "and":
+            return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "M=D&M", "@SP", "M=M-1"]
+        elif command == "or":
+            return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "M=D|M", "@SP", "M=M-1"]
+        elif command == "not":
+            return ["@SP", "A=M", "M=!M"]
+        elif command == "gt":
+            self.eqCounter += 1
+            return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "D=M-D", "@GT" + str(self.eqCounter), "D;JGT", "@NGT" + str(self.eqCounter),
+                    "0;JEQ", "(GT"   + str(self.eqCounter) + ")", "@SP", "A=M", "A=A-1", "A=A-1", "M=-1", "@SP", "M=M-1",
+                    "@CONTINUE" + str(self.eqCounter), "0;JEQ", "(NGT"  + str(self.eqCounter) + ")", "@SP", "A=M", "A=A-1",
+                    "A=A-1", "M=0", "@SP", "M=M-1", "@CONTINUE" + str(self.eqCounter), "0;JEQ", "(CONTINUE"  + str(self.eqCounter) + ")"]
+        elif command == "lt":
+            self.eqCounter += 1
+            return ["@SP", "A=M", "A=A-1", "D=M", "A=A-1", "D=M-D", "@LT" + str(self.eqCounter), "D;JLT",
+                    "@NLT" + str(self.eqCounter), "0;JEQ", "(LT"   + str(self.eqCounter) + ")", "@SP", "A=M", "A=A-1",
+                    "A=A-1", "M=-1", "@SP", "M=M-1", "@CONTINUE" + str(self.eqCounter), "0;JEQ",
+                    "(NLT"  + str(self.eqCounter) + ")", "@SP", "A=M", "A=A-1", "A=A-1", "M=0", "@SP", "M=M-1",
+                    "@CONTINUE" + str(self.eqCounter), "0;JEQ", "(CONTINUE"  + str(self.eqCounter) + ")"]
         elif command == "eq":
             self.eqCounter += 1
             return ['@SP', 'M=M-1', 'A=M', 'D=M', '@SP', 'M=M-1', 'A=M', 'D=D-M', '@EQUAL' + str(self.eqCounter), 'D;JEQ', '@NOTEQUAL' + str(self.eqCounter), '0;JEQ',
-                     '(EQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=0', '@CONTINUE'  + str(self.eqCounter),
-                                '0;JEQ', '(NOTEQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=-1',
+                     '(EQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=-1', '@CONTINUE'  + str(self.eqCounter),
+                                '0;JEQ', '(NOTEQUAL' + str(self.eqCounter) + ')', '@SP', 'A=M', 'M=0',
                      '(CONTINUE' + str(self.eqCounter) + ')', '@SP', 'M=M+1']
 
 
@@ -103,36 +124,48 @@ class CodeWriter:
         :return:
         '''
         self.parser.setInstruction(command)
-        label = self.parser.arg1()
+        VMStackLabel = self.parser.arg1()
         offset = int(self.parser.arg2())
+        translatedLabel = "" #  @translatedLabel
 
-        if (label in self.labels):
-            label = self.labels[label]
+        if (VMStackLabel in self.memoryMappedRegisters):
+            translatedLabel = self.memoryMappedRegisters[VMStackLabel]
+        elif (VMStackLabel == "constant"):
+            return self.translatePushConstant(offset)
         else:
-            label = self.fileName + "." + offset
+            translatedLabel = self.currentVMFile + "." + str(offset)
 
         if offset == 0:
-            return ["@" + label, "A=M", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+            return ["@" + VMStackLabel, "A=M", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
 
-        return ["@" + str(offset), "D=A", "@" + label, "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+        return ["@" + str(offset), "D=A", "@" + VMStackLabel, "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
 
 
 
 
+
+    def translatePushConstant(self, constant):
+        '''
+        Return assembly code for a push constant VM instruction
+        :param constant: integer constant
+        :return:
+        '''
+
+        return ["@" + str(constant), "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
 
     def translatePop(self, command):
         self.parser.setInstruction(command)
 
         label = self.parser.arg1()
-        offset = self.parser.arg2()
+        offset = int(self.parser.arg2())
 
-        if (label in self.labels):
-            label = self.labels[label]
+        if (label in self.memoryMappedRegisters):
+            label = self.memoryMappedRegisters[label]
         else:
-            label = self.fileName + "." + offset
+            label = self.currentVMFile + "." + str(offset)
 
         if offset == 0:
             return ["@SP", "A=M", "A=A-1", "D=M", "@" + label, "A=M", "M=D"]
