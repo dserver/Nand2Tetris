@@ -31,7 +31,7 @@ def hasNewLine(line):
 def translateFile(vm_file):
     parser = Parser()
     codeWriter = CodeWriter(parser)
-    codeWriter.setCurrentVMFile(vm_file)
+    codeWriter.setCurrentVMFile(os.path.basename(vm_file))
 
     hack_file_name = vm_file[:-3] + ".asm"
     hack_file = open(hack_file_name, "w+")
@@ -61,7 +61,10 @@ def translateFile(vm_file):
 
 
 if os.path.isfile(sys.argv[1]):
+    print "Beginning translation"
     translateFile(sys.argv[1])
+else:
+    print "argv[1] not file. Translation aborted"
 
 
 

@@ -20,8 +20,31 @@ class testCodeWriter(unittest.TestCase):
     def testArithmeticOneEqual(self):
         instruction = "eq"
         translated = self.codewriter.translateArithmetic(instruction)
-        correct_translate = ['@SP', 'M=M-1', 'A=M', 'D=M', '@SP', 'M=M-1', 'A=M', 'D=D-M', '@EQUAL1', 'D;JEQ', '@NOTEQUAL1', '0;JEQ', '(EQUAL1)',
-                              '@SP', 'A=M', 'M=0', '@CONTINUE1', '0;JEQ', '(NOTEQUAL1)', '@SP', 'A=M', 'M=-1', '(CONTINUE1)', '@SP', 'M=M+1']
+        correct_translate = ['@SP',
+                             'M=M-1',
+                             'A=M',
+                             'D=M',
+                             '@SP',
+                             'M=M-1',
+                             'A=M',
+                             'D=D-M',
+                             '@EQUAL1',
+                             'D;JEQ',
+                             '@NOTEQUAL1',
+                             '0;JEQ',
+                             '(EQUAL1)',
+                              '@SP',
+                             'A=M',
+                             'M=-1',
+                             '@CONTINUE1',
+                             '0;JEQ',
+                             '(NOTEQUAL1)',
+                             '@SP',
+                             'A=M',
+                             'M=0',
+                             '(CONTINUE1)',
+                             '@SP',
+                             'M=M+1']
         self.assertEqual(translated, correct_translate)
 
     def testArithmeticTwoEqual(self):
@@ -31,7 +54,7 @@ class testCodeWriter(unittest.TestCase):
 
         # labels should have number appended showing which equal we translated
         correct_translate = ['@SP', 'M=M-1', 'A=M', 'D=M', '@SP', 'M=M-1', 'A=M', 'D=D-M', '@EQUAL2', 'D;JEQ', '@NOTEQUAL2', '0;JEQ', '(EQUAL2)',
-                              '@SP', 'A=M', 'M=0', '@CONTINUE2', '0;JEQ', '(NOTEQUAL2)', '@SP', 'A=M', 'M=-1', '(CONTINUE2)', '@SP', 'M=M+1']
+                              '@SP', 'A=M', 'M=-1', '@CONTINUE2', '0;JEQ', '(NOTEQUAL2)', '@SP', 'A=M', 'M=0', '(CONTINUE2)', '@SP', 'M=M+1']
         self.assertEqual(translated, correct_translate)
 
 
@@ -47,6 +70,16 @@ class testCodeWriter(unittest.TestCase):
         instruction = "push local 2"
         translated = self.codewriter.translatePushPop(instruction)
 
-        correct_translation = ["@2", "D=A", "@LCL", "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+        correct_translation = ["@2",
+                               "D=A",
+                               "@LCL",
+                               "A=M",
+                               "A=A+D",
+                               "D=M",
+                               "@SP",
+                               "A=M",
+                               "M=D",
+                               "@SP",
+                               "M=M+1"]
         self.assertEqual(translated, correct_translation)
 

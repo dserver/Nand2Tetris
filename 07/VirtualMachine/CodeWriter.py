@@ -124,27 +124,265 @@ class CodeWriter:
         :return:
         '''
         self.parser.setInstruction(command)
-        VMStackLabel = self.parser.arg1()
+        label = self.parser.arg1()
         offset = int(self.parser.arg2())
-        translatedLabel = "" #  @translatedLabel
 
-        if (VMStackLabel in self.memoryMappedRegisters):
-            translatedLabel = self.memoryMappedRegisters[VMStackLabel]
-        elif (VMStackLabel == "constant"):
+        if label == "local":
+            return self.translatePushLocal(offset)
+        elif label == "argument":
+            return self.translatePushArgument(offset)
+        elif label == "pointer":
+            return self.translatePushPointer(offset)
+        elif label == "static":
+            return self.translatePushStatic(offset)
+        elif label == "temp":
+            return self.translatePushTemp(offset)
+        elif label == "this":
+            return self.translatePushThis(offset)
+        elif label == "that":
+            return self.translatePushThat(offset)
+        elif label == "constant":
             return self.translatePushConstant(offset)
-        else:
-            translatedLabel = self.currentVMFile + "." + str(offset)
-
-        if offset == 0:
-            return ["@" + VMStackLabel, "A=M", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
 
-        return ["@" + str(offset), "D=A", "@" + VMStackLabel, "A=M", "A=A+D", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
+    def translatePopTemp(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        return ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@" + str(5 + constant),
+                "M=D"]
 
 
 
 
 
+
+    def translatePopThat(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        asm_incomplete = ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@THAT",
+                "A=M"]
+
+        for i in xrange(0,constant):
+            asm_incomplete.append("A=A+1")
+
+        asm_incomplete.append("M=D")
+        return asm_incomplete
+
+
+
+
+
+
+    def translatePopThis(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        asm_incomplete = ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@THIS",
+                "A=M"]
+
+        for i in xrange(0,constant):
+            asm_incomplete.append("A=A+1")
+
+        asm_incomplete.append("M=D")
+        return asm_incomplete
+
+
+    def translatePopArgument(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        asm_incomplete = ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@ARG",
+                "A=M"]
+
+        for i in xrange(0,constant):
+            asm_incomplete.append("A=A+1")
+
+        asm_incomplete.append("M=D")
+        return asm_incomplete
+
+
+    def translatePopPointer(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@" + str(3 + constant),
+                "M=D"]
+
+
+    def translatePopLocal(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        asm = ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@LCL",
+                "A=M"]
+
+        for i in xrange(0,constant):
+            asm.append("A=A+1")
+
+        asm.append("M=D")
+        return asm
+
+
+    def translatePopStatic(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        asm = ["@SP",
+                "M=M-1",
+                "A=M",
+                "D=M",
+                "@" + self.currentVMFile + "." + str(constant),
+                "A=M"]
+
+        for i in xrange(0,constant):
+            asm.append("A=A+1")
+
+        asm.append("M=D")
+        return asm
+
+    def translatePushThat(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@" + str(constant),
+                "D=A",
+                "@THAT",
+                "A=M",
+                "A=A+D",
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
+    def translatePushThis(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@" + str(constant),
+                "D=A",
+                "@THIS",
+                "A=M",
+                "A=A+D",
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
+
+    def translatePushTemp(self, constant):
+        return ["@" + str(5 + constant),
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
+    def translatePushArgument(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@" + str(constant),
+                "D=A",
+                "@ARG",
+                "A=M",
+                "A=A+D",
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
+    def translatePushLocal(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@" + str(constant),
+                "D=A",
+                "@LCL",
+                "A=M",
+                "A=A+D",
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
+    def translatePushPointer(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+
+        return ["@" + str(3 + constant),
+                "A=M",
+                "D=A",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
 
     def translatePushConstant(self, constant):
         '''
@@ -156,27 +394,51 @@ class CodeWriter:
         return ["@" + str(constant), "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"]
 
 
+    def translatePushStatic(self, constant):
+        '''
+
+        :param constant: integer
+        :return:
+        '''
+        return ["@" + str(constant),
+                "D=A",
+                "@" + self.currentVMFile + "." + str(constant),
+                "A=M",
+                "A=A+D",
+                "D=M",
+                "@SP",
+                "A=M",
+                "M=D",
+                "@SP",
+                "M=M+1"]
+
     def translatePop(self, command):
+        '''
+        Todo: this, that, pointer, etc aren't directly mapped to RAM 0-5, you need to use
+        the values as a pointer to the actual memory segment
+        :param command:
+        :return:
+        '''
         self.parser.setInstruction(command)
 
         label = self.parser.arg1()
         offset = int(self.parser.arg2())
 
-        if (label in self.memoryMappedRegisters):
-            label = self.memoryMappedRegisters[label]
-        else:
-            label = self.currentVMFile + "." + str(offset)
+        if label == "local":
+            return self.translatePopLocal(offset)
+        elif label == "argument":
+            return self.translatePopArgument(offset)
+        elif label == "pointer":
+            return self.translatePopPointer(offset)
+        elif label == "static":
+            return self.translatePopStatic(offset)
+        elif label == "temp":
+            return self.translatePopTemp(offset)
+        elif label == "this":
+            return self.translatePopThis(offset)
+        elif label == "that":
+            return self.translatePopThat(offset)
 
-        if offset == 0:
-            return ["@SP", "A=M", "A=A-1", "D=M", "@" + label, "A=M", "M=D"]
-
-
-        instructions = ["@SP", "A=M", "A=A-1", "D=M", "@" + label, "A=M", "M=D"]
-        for i in range(0, offset):
-            instructions.append("A=A+1")
-        instructions.append("M=D")
-
-        return instructions
 
 
 
